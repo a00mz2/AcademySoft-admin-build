@@ -1,0 +1,36 @@
+{
+    "name": "AcademySoft — لوحة التحكم",
+    "short_name": "لوحة التحكم",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#13AC9C",
+    "theme_color": "#13AC9C",
+    "description": "لوحة تحكم AcademySoft.",
+    "lang": "ar",
+    "dir": "rtl",
+    "prefer_related_applications": false,
+    "icons": [
+        {
+            "src": "icons/Icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-maskable-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "icons/Icon-maskable-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}
