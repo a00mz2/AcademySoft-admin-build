@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <!--
+    If you are serving your web app in a path other than the root, change the
+    href value below to reflect the base path you are serving from.
+
+    The path provided below has to start and end with a slash "/" in order for
+    it to work correctly.
+
+    For more details:
+    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
+
+    This is a placeholder for base href that will be replaced by the value of
+    the `--base-href` argument provided to `flutter build`.
+  -->
+  <base href="https://test-academysoft.fastest-iq.com/">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <!--
+    🔴 **كان غائباً** — وغيابُه يجعل متصفّحَ الهاتف يرسم الصفحةَ بعرضٍ
+       افتراضيّ 980 ثمّ يُصغّرها، فتظهر اللوحةُ (وشاشةُ الانتظار معها)
+       مُزوَّاةً ومقصوصة. ويخصّ الوثيقةَ كلَّها لا هذه الشاشةَ وحدها.
+  -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="AcademySoft admin dashboard.">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="AcademySoft Admin">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <!-- بلا تشكيل، ومطابقٌ لـ`MaterialApp.title` في `lib/main.dart` -->
+  <title>AcademySoft — لوحة التحكم</title>
+  <link rel="manifest" href="manifest.json">
+
+  <!--
+    ═══════════════════════════════════════════════════════════════════
+      شاشةُ الانتظار — ما يُرى قبل أن يُقلع Flutter.
+
+      🔴 **العطبُ الذي تسدّه**: حمولةُ اللوحة 5.6 ميغابايت، وكان الجسمُ
+         سطراً واحداً (سكربتُ الإقلاع). فمن يفتحها يرى **بياضاً عارياً**
+         حتى يكتمل التنزيلُ والترجمة — بلا شعارٍ ولا خبر.
+
+      ⭐ **والتصميمُ منقولٌ لا مُخترَع**: القيَمُ أدناه مأخوذةٌ حرفياً من
+         `lib/auth/login_page.dart` (التدرّجُ الشعاعيّ والهويّة) ومن
+         `lib/shell/sidebar_sky.dart` (حقلُ النجوم) — كي لا تقع قفزةٌ
+         بصرية بين الانتظار وأوّل شاشةٍ حقيقية.
+
+      ⚠️ **وكلُّ حركةٍ هنا CSS خالص — لا `requestAnimationFrame`.** وهو
+         قرارُ أداءٍ لا ذوق: الخيطُ الرئيسيّ في هذه اللحظة بالذات مشغولٌ
+         بترجمة تلك الميغابايتات، فحلقةُ JS تتلعثم حين يُفترض أن تُطمئن.
+         و`opacity`/`transform` تُدار على مُركِّب الطبقات بلا الخيط
+         الرئيسي، فتبقى ناعمةً تحت أثقل حِمل.
+
+      ⚠️ **وبلا خطّ Cairo عمداً**: هو مُجمَّعٌ في `assets/fonts/` بـ89
+         كيلوبايت للوزن، والشاشةُ تحتاج وزنين ⇒ 178 كيلوبايت **تزاحم**
+         الحمولةَ التي ينتظرها المستخدم. أي أنّ تجميلَ سطرين يؤخّر ما
+         جاء لأجله. فمكدّسُ خطوط النظام العربية يكفي لسطرين يُعرضان
+         ثانيتين.
+    ═══════════════════════════════════════════════════════════════════
+  -->
+  <style>
+    /* ⚠️ على `html` لا `body`: يُرسم قبل أن يُحلَّل الجسم، فلا يومض
+       الأبيضُ لحظةً واحدة. */
+    html { background: #020D0B; }
+
+    html, body { margin: 0; padding: 0; height: 100%; }
+
+    #boot {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 26px;
+      overflow: hidden;
+      /* منقولٌ من `_backdrop` الداكن: مركزٌ عند Alignment(0.9,-0.9)
+         ⇒ (0.9+1)/2 = 95% أفقياً و(-0.9+1)/2 = 5% رأسياً. */
+      background: radial-gradient(circle at 95% 5%,
+        #0C5F55 0%, #04221F 42%, #020D0B 100%);
+      font-family: 'Segoe UI', Tahoma, 'Noto Sans Arabic', 'Arial', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      transition: opacity 420ms ease;
+    }
+
+    #boot.gone { opacity: 0; pointer-events: none; }
+
+    /* ═══════════════════ حقلُ النجوم ═══════════════════
+       سبعون نجمةً بيضاءَ خالصة — و«أبيضُ لا تركواز» قاعدةٌ صريحة في
+       `sidebar_sky.dart`، لا ذوقٌ يُراجَع.
+
+       ⚠️ والانجرافُ يُنفَّذ بشريطين متطابقين ارتفاعُ كلٍّ منهما ملءُ
+          الشاشة: يُزاح الزوجُ بمقدار شريطٍ واحد فيعود إلى موضعه — دورةٌ
+          لا يُرى فيها وصل. وهو بديلُ الالتفاف الحسابيّ (`% 1.0`) الذي
+          يفعله الرسّامُ في التطبيق. */
+    .sky {
+      position: absolute;
+      inset: 0;
+      /* التلاشي في أعلى 5% وأسفلها — كما في `paintSky`. */
+      -webkit-mask-image: linear-gradient(to bottom,
+        transparent 0%, #000 5%, #000 95%, transparent 100%);
+      mask-image: linear-gradient(to bottom,
+        transparent 0%, #000 5%, #000 95%, transparent 100%);
+    }
+
+    /* ⚠️ `top/left/right` لا `inset`: `inset:0` يضبط `bottom` أيضاً
+       فيناقض `height:200%` — قيدٌ زائدٌ يُهمِل أحدَهما صامتاً. */
+    .drift {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 200%;
+      animation: drift 120s linear infinite;
+      will-change: transform;
+    }
+
+    .band { position: absolute; left: 0; right: 0; height: 50%; }
+    .band.b2 { top: 50%; }
+
+    /* إلى **أعلى** — اتجاهُ الانجراف في التطبيق. */
+    @keyframes drift {
+      from { transform: translate3d(0, 0, 0); }
+      to   { transform: translate3d(0, -50%, 0); }
+    }
+
+    /* 🔴 **بلا `will-change` هنا عمداً** — وهي مئةٌ وأربعون عقدة
+       (شريطان × سبعون). `will-change: opacity` يرفع كلَّ واحدةٍ إلى
+       طبقةِ تركيبٍ مستقلّة، فينقلب العلاجُ داءً: مئةٌ وأربعون طبقةً
+       تلتهم الذاكرةَ في اللحظة التي يُترجَم فيها خمسةُ ميغابايت.
+       وحركةُ `opacity` مُركَّبةٌ أصلاً بلا إعلان. والإعلانُ يبقى على
+       `.drift` وحدَه — عقدةٌ واحدةٌ تتحرّك فعلاً. */
+    .s {
+      position: absolute;
+      border-radius: 50%;
+      background: #FFFFFF;
+      /* أرضيّةُ التلألؤ 0.35 من الذروة — والذروةُ في `--a`. */
+      opacity: var(--a);
+      animation-name: tw;
+      animation-timing-function: ease-in-out;
+      animation-iteration-count: infinite;
+    }
+
+    @keyframes tw {
+      0%, 100% { opacity: calc(var(--a) * 0.35); }
+      50%      { opacity: var(--a); }
+    }
+
+    /* الدورات: 120 ÷ {15,20,24,40} — منقولةٌ كما هي. */
+    .p8 { animation-duration: 8s; }
+    .p6 { animation-duration: 6s; }
+    .p5 { animation-duration: 5s; }
+    .p3 { animation-duration: 3s; }
+
+    /* ═══════════════════ الشهب ═══════════════════
+       ⚠️ **زيادةٌ على تصميم التطبيق** بطلب المالك: `SidebarStarfield`
+          ليس فيه شهب. فحين تُقلع اللوحةُ تتوقّف الشهبُ ويبقى الحقلُ —
+          تباينٌ مقصودٌ مُعلَن. */
+    .m {
+      position: absolute;
+      width: 140px;
+      height: 1px;
+      background: linear-gradient(to left,
+        rgba(255,255,255,0) 0%, rgba(255,255,255,.55) 55%, rgba(255,255,255,0) 100%);
+      opacity: 0;
+      transform: rotate(18deg);
+      animation: meteor 7s linear infinite;
+      will-change: transform, opacity;
+    }
+    .m2 { animation-duration: 9s; animation-delay: 4.5s; }
+
+    @keyframes meteor {
+      0%        { opacity: 0; transform: translate3d(0, 0, 0) rotate(18deg); }
+      4%        { opacity: .9; }
+      16%       { opacity: 0; }
+      /* البقيّةُ سكونٌ — الشهابُ حدثٌ عابر لا حركةٌ دائمة. */
+      16.01%,
+      100%      { opacity: 0; transform: translate3d(-46vw, 15vh, 0) rotate(18deg); }
+    }
+
+    /* ═══════════════════ الهويّة ═══════════════════
+       ⚠️ نِسَبُ `_brand` في صفحة الدخول مضروبةٌ في 1.5: هناك تعلو
+          بطاقةً، وهنا تتوسّط شاشةً خالية فتبدو ضائعةً بمقاسها الأصلي.
+          والمعالجةُ نفسُها حرفياً — قرصٌ أبيضُ وحدٌّ ووهج. */
+    .brand { display: flex; align-items: center; gap: 18px; }
+
+    .disc {
+      width: 69px; height: 69px;
+      box-sizing: border-box;
+      padding: 13px;
+      border-radius: 50%;
+      /* 🔴 **أبيضُ في الوضعين معاً**: الشعارُ خطٌّ تركوازيٌّ بلا حشو،
+         فيذوب على الأخضر. القاعدةُ منقولةٌ من `login_page.dart`. */
+      background: #FFFFFF;
+      border: 1.5px solid rgba(111, 227, 212, .55);
+      box-shadow: 0 0 18px -2px rgba(111, 227, 212, .30);
+      display: flex; align-items: center; justify-content: center;
+      flex: 0 0 auto;
+    }
+
+    .disc img { width: 100%; height: 100%; object-fit: contain; display: block; }
+
+    .names { display: flex; flex-direction: column; gap: 3px; }
+
+    .n1 {
+      font-size: 27px; font-weight: 900; line-height: 1.2; color: #FFFFFF;
+      white-space: nowrap;
+    }
+
+    .n2 {
+      font-size: 14px; font-weight: 700; line-height: 1.3;
+      letter-spacing: 2.4px; color: #DCEDEA; white-space: nowrap;
+    }
+
+    /* ═══════════════════ التقدّم ═══════════════════
+       🔴 **بلا نسبةٍ مئوية**: لا سبيل إلى معرفتها قبل أن يُقلع المحرّك،
+          ورقمٌ مخترعٌ كذبةٌ يراها المستخدمُ تتوقّف. */
+    .bar {
+      width: 190px; height: 3px; border-radius: 999px;
+      background: rgba(255, 255, 255, .10);
+      overflow: hidden;
+    }
+
+    .bar i {
+      display: block; width: 40%; height: 100%; border-radius: 999px;
+      background: linear-gradient(to left, #13AC9C, #6FE3D4);
+      animation: slide 1.4s ease-in-out infinite;
+      will-change: transform;
+    }
+
+    /* ⚠️ RTL: يبدأ من اليمين. */
+    @keyframes slide {
+      0%   { transform: translate3d(100%, 0, 0); }
+      100% { transform: translate3d(-250%, 0, 0); }
+    }
+
+    .hint { margin: 0; font-size: 12.5px; color: #9EBFB9; }
+
+    /* ═══════════════════ التعثّر ═══════════════════
+       🔴 شاشةٌ جميلةٌ تدور إلى الأبد **أسوأُ من بياض**: تكذب بثقة. فبعد
+          عشرين ثانيةً بلا `flutter-first-frame` يُقال ما جرى. */
+    .stalled { text-align: center; }
+    .stalled[hidden] { display: none; }
+
+    .stalled p {
+      margin: 0 0 12px; font-size: 13px; color: #F7A23B; line-height: 1.7;
+    }
+
+    .stalled button {
+      font: inherit; font-size: 13px; font-weight: 700;
+      color: #FFFFFF; background: #13AC9C;
+      border: 0; border-radius: 8px; padding: 10px 22px; cursor: pointer;
+    }
+
+    .stalled button:hover { background: #0E8A7E; }
+
+    /* ═══════════════════ تقليل الحركة ═══════════════════
+       المسارُ نفسُه الذي يحترمه التطبيق (`_StillStarPainter`): إطارٌ
+       ساكنٌ لا تلألؤ. تلألؤٌ لانهائيٌّ في زاوية العين هو حرفياً ما
+       يعالجه WCAG 2.2 SC 2.2.2. */
+    @media (prefers-reduced-motion: reduce) {
+      .drift, .s, .m, .bar i { animation: none !important; }
+      .m { display: none; }
+      .bar i { width: 100%; opacity: .5; }
+    }
+
+    /* 🔴 **الكَدسُ رأسياً لا التصغيرُ وحدَه.** السطرُ الأفقيّ (قرصٌ +
+       اسمٌ بـ`nowrap`) يتجاوز الشاشةَ الضيّقة فيُقصّ القرصُ عند الحافّة
+       — رُصد فعلاً عند 360 نقطة. والتصغيرُ يؤجّل العطبَ ولا يمنعه، لأنّ
+       طولَ الاسم ثابتٌ والحدَّ الأدنى للخطّ محدود. */
+    @media (max-width: 460px) {
+      .brand { flex-direction: column; gap: 12px; text-align: center; }
+      .names { align-items: center; gap: 2px; }
+      .disc { width: 58px; height: 58px; padding: 11px; }
+      .n1 { font-size: 22px; }
+      .n2 { font-size: 12px; letter-spacing: 2px; }
+      .bar { width: 62vw; max-width: 190px; }
+    }
+
+    /* ⚠️ وحارسٌ أخير مهما ضاقت: لا يفيض النصُّ أفقياً بحال. */
+    .n1, .n2 { max-width: 92vw; overflow: hidden; text-overflow: ellipsis; }
+  </style>
+</head>
+<body>
+  <div id="boot">
+    <div class="sky" aria-hidden="true">
+      <div class="drift">
+        <div class="band b1" id="band1"></div>
+        <div class="band b2" id="band2"></div>
+      </div>
+    </div>
+
+    <i class="m" style="top: 14%; right: -140px;" aria-hidden="true"></i>
+    <i class="m m2" style="top: 38%; right: -140px;" aria-hidden="true"></i>
+
+    <div class="brand">
+      <div class="disc"><img src="favicon.png" alt=""></div>
+      <div class="names">
+        <div class="n1">أكاديمي سوفت</div>
+        <div class="n2">لوحة التحكم</div>
+      </div>
+    </div>
+
+    <div class="bar" role="progressbar" aria-label="جارٍ التحميل"><i></i></div>
+    <p class="hint" id="hint">جارٍ تحميل لوحة التحكم…</p>
+
+    <div class="stalled" id="stalled" hidden>
+      <p>يتأخّر تحميل اللوحة — تحقّق من اتصالك.</p>
+      <button type="button" id="retry">إعادة المحاولة</button>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      /*
+       * ⭐ **تُولَّد مرّةً عند التحليل ثمّ لا JS بعدها إطلاقاً.**
+       *    سبعون عنصراً أقلُّ من ملّي ثانية، والتلألؤُ والانجرافُ بعدها
+       *    على مُركِّب الطبقات وحدَه — راجع حجّةَ الأداء في الترويسة.
+       *
+       * ⚠️ ولا تُطابَق المواضعُ مع بذرة التطبيق (20260824): الشاشتان لا
+       *    تُريان معاً، وإعادةُ كتابة مولّدٍ عشوائيّ بلا عائد. المُطابَقُ
+       *    هو **المعايير** — العددُ والطبقاتُ والشفافياتُ والدورات.
+       */
+      /*
+       * ⭐ **التبليطُ يحلّ مشكلةَ كثافةٍ لا مشكلةَ سطوع** — الحجّةُ نفسُها
+       *    المكتوبةُ فوق `paintSky` في `sidebar_sky.dart`.
+       *
+       *    الجدولُ سبعون نجمةً، وُضع لعمودٍ عرضُه 280. وشاشةٌ عرضُها 1280
+       *    مساحتُها أضعافُه، فالكثافةُ فيها خُمسُ كثافة الشريط — ويُقرأ
+       *    ذلك «نجومٌ ضعيفة» بينما العلّةُ في التباعد لا في الشفافية.
+       *    ورفعُ الشفافية وحدَه يُنتج نقاطاً قليلةً صارخة، ويخرق سقفَ
+       *    التباين (0.16) الذي حُسب لا ذُوّق.
+       *
+       * ⚠️ والسقفُ ثلاثُ نسخ — `kPageSkyTiles` في `app_theme.dart`.
+       */
+      var BASE = 70;
+      var TILES = Math.max(1, Math.min(3, Math.round(window.innerWidth / 430)));
+      var COUNT = BASE * TILES;
+      var PERIODS = ['p8', 'p6', 'p5', 'p3'];
+
+      // الطبقاتُ الثلاث كما في `starSpec`: نصفُ قطرٍ وذروةُ شفافية.
+      // 🔴 والذروةُ مسقوفةٌ بـ0.16 (`kStarPeakCap`) بحسابِ تباينٍ لا بذوق:
+      //    فوقها تهبط نصوصُ `sidebarFaint` دون 4.5:1.
+      function tier(i) {
+        // النسبةُ على **نسخةٍ واحدة** كي تبقى الطبقاتُ 60/30/10 في كلٍّ.
+        var r = (i % BASE) / BASE;
+        if (r < 0.60) return { min: 1.00, max: 1.40, aMin: 0.07, aMax: 0.10 };
+        if (r < 0.90) return { min: 1.60, max: 2.10, aMin: 0.11, aMax: 0.13 };
+        return { min: 2.40, max: 3.20, aMin: 0.14, aMax: 0.16 };
+      }
+
+      function band(el) {
+        if (!el) return;
+        var html = '';
+        for (var i = 0; i < COUNT; i++) {
+          var t = tier(i);
+          var d = (t.min + Math.random() * (t.max - t.min)) * 2;
+          var a = t.aMin + Math.random() * (t.aMax - t.aMin);
+          html += '<span class="s ' + PERIODS[i % PERIODS.length] + '"' +
+            ' style="left:' + (Math.random() * 100).toFixed(3) + '%;' +
+            'top:' + (Math.random() * 100).toFixed(3) + '%;' +
+            'width:' + d.toFixed(2) + 'px;height:' + d.toFixed(2) + 'px;' +
+            'animation-delay:-' + (Math.random() * 8).toFixed(2) + 's;' +
+            '--a:' + a.toFixed(3) + '"></span>';
+        }
+        el.innerHTML = html;
+      }
+
+      // ⚠️ الشريطان **متطابقان في القاعدة مختلفان في التوزيع**: نسخةٌ
+      //    حرفيةٌ كانت تُرى تكراراً واضحاً عند نقطة الوصل.
+      band(document.getElementById('band1'));
+      band(document.getElementById('band2'));
+
+      // ═══════════════════ الاختفاء ═══════════════════
+      var boot = document.getElementById('boot');
+      var stalledTimer = null;
+      var done = false;
+
+      function hide() {
+        if (done || !boot) return;
+        done = true;
+        if (stalledTimer) clearTimeout(stalledTimer);
+        boot.classList.add('gone');
+        // بعد التلاشي — لا تُترك طبقةٌ تلتقط النقرات فوق اللوحة.
+        setTimeout(function () {
+          if (boot && boot.parentNode) boot.parentNode.removeChild(boot);
+        }, 460);
+      }
+
+      /*
+       * 🔴 `flutter-first-frame` هو الحدثُ الرسميّ الذي يبعثه Flutter Web
+       *    بعد **أوّل إطارٍ مرسوم** — لا بعد تحميل السكربت. والفرقُ هو
+       *    كلُّ شيء: الاختفاءُ عند التحميل يكشف شاشةً بيضاءَ ريثما يُبنى
+       *    أوّلُ إطار.
+       *
+       * ⚠️ ولا يحتاج `flutter_bootstrap.js` مخصّصاً — وهو اليوم مولَّدٌ
+       *    افتراضيّ بلا خطّافات، وقالبٌ مخصّصٌ يعني صيانةَ ملفٍّ يولّده
+       *    Flutter مع كلّ ترقية.
+       */
+      window.addEventListener('flutter-first-frame', hide);
+
+      // ═══════════════════ التعثّر ═══════════════════
+      stalledTimer = setTimeout(function () {
+        if (done) return;
+        var box = document.getElementById('stalled');
+        var hint = document.getElementById('hint');
+        if (hint) hint.style.display = 'none';
+        if (box) box.hidden = false;
+      }, 20000);
+
+      var retry = document.getElementById('retry');
+      if (retry) {
+        retry.addEventListener('click', function () { location.reload(); });
+      }
+    })();
+  </script>
+
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>
